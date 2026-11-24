@@ -1,0 +1,54 @@
+# Construieste CriptoLab.exe pe un calculator Windows de la GitHub, la fiecare push
+# (sau manual: Actions -> Construieste CriptoLab.exe -> Run workflow).
+# Rezultatul se descarca din pagina rularii, sectiunea Artifacts: CriptoLab-windows.
+# Cand faci un tag v1.0, v1.1 ..., exe-ul se pune si la Releases.
+
+name: Construieste CriptoLab.exe
+
+on:
+  push:
+    branches: [main, master]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: g++ (MinGW) in PATH
+        shell: pwsh
+        run: |
+          if (Test-Path C:\mingw64\bin) { "C:\mingw64\bin" >> $env:GITHUB_PATH }
+
+      - name: Construieste
+        shell: pwsh
+        run: |
+          g++ --version
+          python -m pip install pyinstaller
+          python construieste.py
+
+      - name: Verifica motoarele
+        shell: pwsh
+        run: |
+          $iesire = "cripteaza`n3`n" + (-join (33..58 | % {[char]$_})) + "`n" + [char]33 + "`n" | .\dist\CriptoLab\_internal\cezar\motor.exe
+          if ($iesire -ne [string][char]36) { throw "Motorul Cezar a raspuns: $iesire" }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CriptoLab-windows
+          path: dist/CriptoLab
+
+      - name: Release (doar pentru tag-uri v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/CriptoLab-windows.zip

@@ -1,0 +1,7 @@
+# rezultate ale construirii (le face construieste.py sau GitHub)
+build/
+dist/
+motor.exe
+motor
+__pycache__/
+*.pyc
